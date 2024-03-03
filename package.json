@@ -1,0 +1,8 @@
+{
+  "name": "drimgar-experiments",
+  "scripts": {
+  },
+  "dependencies": {
+    "firebase-tools": "*"
+  }
+}
