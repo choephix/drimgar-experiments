@@ -1,0 +1,19 @@
+on:
+  push:
+jobs:
+  build_and_deploy:
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # - run: npm i -g bun && bun i
+
+      - run: bun run build
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DRIMGAR_CCG }}'
+          channelId: ${{ github.ref == 'refs/heads/main' && 'live' || github.ref_name }}
+          projectId: drimgar-ccg
+          target: drimgar-experiments

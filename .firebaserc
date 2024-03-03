@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "drimgar-ccg"
+  },
+  "targets": {
+    "drimgar-ccg": {
+      "hosting": {
+        "drimgar-demo-experiments": [
+          "drimgar-demo-experiments"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
