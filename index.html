@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MSDF Bitmap Fonts</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: #f0f0f0;
+        font-family: sans-serif;
+      }
+      .container {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+      }
+      .sidebar {
+        flex: 0 0 20vw;
+        padding: 10px;
+      }
+      .link {
+        padding: 5px;
+        cursor: pointer;
+        user-select: all;
+      }
+      .link:hover {
+        color: #36f;
+      }
+      .preview {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: fixed;
+        width: fit-content;
+        height: fit-content;
+        right: 100px;
+        top: 100px;
+        border-radius: 20px;
+        overflow: hidden;
+      }
+      .preview canvas {
+        max-width: 50vw;
+        max-height: 50vh;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="preview" id="preview">
+        <p>Select a file to preview</p>
+      </div>
+    </div>
+    <script>
+      function loadImage(url) {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = url;
+        });
+      }
+
+      async function showPreview(colorImgUrl, depthImgUrl) {
+        const previewDiv = document.getElementById('preview');
+        previewDiv.innerHTML = ``;
+
+        const colorImg = await loadImage(colorImgUrl);
+        const depthImg = await loadImage(depthImgUrl);
+
+        const canvas = document.createElement('canvas');
+        previewDiv.appendChild(canvas);
+
+        // Assuming both images have the same dimensions
+        canvas.width = colorImg.width;
+        canvas.height = colorImg.height;
+
+        // Assuming renderMSDFImage can handle both color and depth images
+        return renderMSDFImage(canvas, colorImg, depthImg);
+      }
+
+      // showPreview("https://storage.drimgar.com/illustrations/eurydice-02.jpg")
+      showPreview(
+        //
+        // '/img/unnamed.jpg',
+        // '/img/depth.png'
+        '/img/eurydice-02.jpg',
+        '/img/eurydice-02-depth.jpg'
+      ).then(ctrl => {
+        const previewDiv = document.getElementById('preview');
+
+        const loop = () => {
+          const now = performance.now();
+          const speed = 0.0025;
+          const strength = Math.abs(Math.sin(now * 0.00051));
+          const shift = [
+            //
+            strength * Math.sin(now * speed),
+            strength * Math.cos(now * speed),
+          ];
+
+          previewDiv.style.transform = `
+            perspective(600px)
+            rotateY(${-shift[0] * 10}deg)
+            rotateX(${shift[1] * 10}deg)
+          `;
+          ctrl.setShift(shift);
+          requestAnimationFrame(loop);
+        };
+        loop();
+      });
+    </script>
+
+    <script>
+      function renderMSDFImage(canvas, colorImg, depthImg) {
+        const gl = canvas.getContext('webgl2');
+        if (!gl) {
+          throw new Error('WebGL context not available');
+        }
+
+        // Create vertex shader
+        const vertexShaderSource = `#version 300 es
+          in vec2 a_position;
+          in vec2 a_texCoord;
+          out vec2 v_texCoord;
+
+          void main() {
+            gl_Position = vec4(a_position, 0.0, 1.0);
+            v_texCoord = a_texCoord;
+          }
+        `;
+        const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+        gl.shaderSource(vertexShader, vertexShaderSource);
+        gl.compileShader(vertexShader);
+
+        // Check if vertex shader compiled successfully
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+          throw new Error('Unable to compile vertex shader: ' + gl.getShaderInfoLog(vertexShader));
+        }
+
+        // Create fragment shader
+        const fragmentShaderSource = `#version 300 es
+          precision mediump float;
+
+          uniform sampler2D u_colorTexture;
+          uniform sampler2D u_depthTexture;
+          uniform vec2 u_shift;
+
+          in vec2 v_texCoord;
+          out vec4 outColor;
+
+          vec2 smoothShift(vec2 shift, float depth) {
+            float smoothDepth = smoothstep(0.0, 1.0, depth);
+            return shift * smoothDepth;
+          }
+
+          void main()
+          {            
+              float str = length(u_shift);
+
+              float depth = texture(u_depthTexture, v_texCoord).r;
+              float undepth = 1.0 - depth;
+
+              vec2 centeredTexCoord = v_texCoord - 0.5;
+
+              float scale = mix(1.0, 1.0 + 0.05 * str, depth);
+              vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+              
+              float depth2 = texture(u_depthTexture, scaledTexCoord).r;
+              vec2 adjustedShift = smoothShift(u_shift, depth2);
+              vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * 0.03);
+
+              outColor = color;
+          }
+        `;
+        const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(fragmentShader, fragmentShaderSource);
+        gl.compileShader(fragmentShader);
+
+        // Check if fragment shader compiled successfully
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+          throw new Error(
+            'Unable to compile fragment shader: ' + gl.getShaderInfoLog(fragmentShader)
+          );
+        }
+
+        // Create program
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        // Check if program linked successfully
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          throw new Error('Unable to link shader program: ' + gl.getProgramInfoLog(program));
+        }
+
+        // Create buffer
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        const positions = [-1, -1, -1, 1, 1, -1, 1, 1];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+        const texCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        const texCoords = [0, 1, 0, 0, 1, 1, 1, 0];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+
+        // Create color texture
+        const colorTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, colorTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, colorImg);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Create depth texture
+        const depthTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, depthImg);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        // Set up attributes and uniforms
+        const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+        const texCoordAttributeLocation = gl.getAttribLocation(program, 'a_texCoord');
+
+        // Set up uniforms
+        const colorTextureUniformLocation = gl.getUniformLocation(program, 'u_colorTexture');
+        const depthTextureUniformLocation = gl.getUniformLocation(program, 'u_depthTexture');
+
+        const shiftUniformLocation = gl.getUniformLocation(program, 'u_shift');
+        let shift = [0.5, 0];
+
+        function draw() {
+          gl.useProgram(program);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+          gl.enableVertexAttribArray(positionAttributeLocation);
+          gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+          gl.enableVertexAttribArray(texCoordAttributeLocation);
+          gl.vertexAttribPointer(texCoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, colorTexture);
+          gl.uniform1i(colorTextureUniformLocation, 0);
+
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, depthTexture);
+          gl.uniform1i(depthTextureUniformLocation, 1);
+
+          gl.uniform2fv(shiftUniformLocation, shift);
+
+          // Render
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+
+        // Initial draw
+        draw();
+
+        return {
+          setShift: function (newShift) {
+            shift = newShift.map(v => v);
+            draw();
+          },
+        };
+      }
+    </script>
+  </body>
+</html>
