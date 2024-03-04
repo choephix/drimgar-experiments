@@ -45,7 +45,7 @@
         pointer-events: none;
       }
     </style>
-    <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+    <script id="vertex-shader" type="x-shader/x-vertex">
       attribute vec2 aVertexPosition;
 
       uniform mat3 projectionMatrix;
@@ -70,13 +70,12 @@
       void main(void ) {
         gl_Position = filterVertexPosition();
         vTextureCoord = filterTextureCoord();
-        
+
         vTextureCoord = aVertexPosition;
         vFilterCoord = (filterMatrix * vec3(vTextureCoord, 1.0)).xy;
       }
-
     </script>
-    <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+    <script id="fragment-shader" type="x-shader/x-fragment">
       precision highp float;
 
       varying vec2 vFilterCoord;
@@ -94,21 +93,21 @@
       vec3 perspective(
         vec2 uv,
         vec3 cameraShift,
-        float convergence 
+        float convergence
       ) {
-        vec3 ray_origin = vec3(uv - 0.5, 0) * (1.0 - convergence * cameraShift.z); 
-        vec3 ray_direction = vec3(0, 0, 1); 
+        vec3 ray_origin = vec3(uv - 0.5, 0) * (1.0 - convergence * cameraShift.z);
+        vec3 ray_direction = vec3(0, 0, 1);
 
-        
+
         ray_origin.xy -= cameraShift.xy * convergence;
         ray_direction.xy += (uv - 0.5) * cameraShift.z + cameraShift.xy;
 
-        const int step_count = 45; 
+        const int step_count = 45;
         const float hit_threshold = 0.01;
         ray_direction /= float(step_count);
 
-        
-        
+
+
         vec3 color = vec3(0.0);
 
         for (int i = 0; i < step_count; i++) {
@@ -118,8 +117,8 @@
             if (ray_origin.z - scene_z < hit_threshold) {
               break;
             }
-            ray_origin -= ray_direction; 
-            ray_direction /= 2.0; 
+            ray_origin -= ray_direction;
+            ray_direction /= 2.0;
           }
         }
 
@@ -248,15 +247,12 @@
         };
         loop();
       });
-    </script>
-
-    <script>
+      
       function renderMSDFImage(canvas, colorImg, depthImg) {
-        const gl = canvas.getContext('webgl2');
+        const gl = canvas.getContext('webgl');
         if (!gl) {
           throw new Error('WebGL context not available');
         }
-
 
         // Create vertex shader
         const vertexShaderSource = document.getElementById('vertex-shader').textContent;
@@ -327,8 +323,8 @@
         const texCoordAttributeLocation = gl.getAttribLocation(program, 'a_texCoord');
 
         // Set up uniforms
-        const colorTextureUniformLocation = gl.getUniformLocation(program, 'u_colorTexture');
-        const depthTextureUniformLocation = gl.getUniformLocation(program, 'u_depthTexture');
+        const colorTextureUniformLocation = gl.getUniformLocation(program, 'imageSampler');
+        const depthTextureUniformLocation = gl.getUniformLocation(program, 'mapSampler');
 
         let scaleFactor = 0.03,
           depthFactor = 0.02;
@@ -337,6 +333,24 @@
 
         const shiftUniformLocation = gl.getUniformLocation(program, 'u_shift');
         let shift = [0.5, 0];
+
+        const inputSizeUniformLocation = gl.getUniformLocation(program, 'inputSize');
+        const scaleUniformLocation = gl.getUniformLocation(program, 'scale');
+        const offsetUniformLocation = gl.getUniformLocation(program, 'offset');
+        const focusUniformLocation = gl.getUniformLocation(program, 'focus');
+        const enlargeUniformLocation = gl.getUniformLocation(program, 'enlarge');
+        const aspectUniformLocation = gl.getUniformLocation(program, 'aspect');
+
+        const { width, height } = colorImg;
+
+        const inputSize = [width, height, 0, 0]; // Replace 'width' and 'height' with actual values
+        const scale = 1.0;
+        const offset = [0.0, 0.0, 0.0]; // X, Y, Z offset
+        const focus = 1.0;
+        const enlarge = 1.0;
+        const aspect = width / height; // Replace 'width' and 'height' with actual values
+
+        console.log('inputSize', inputSize);
 
         function draw() {
           gl.useProgram(program);
@@ -361,6 +375,13 @@
           gl.uniform1f(depthFactorUniformLocation, depthFactor);
 
           gl.uniform2fv(shiftUniformLocation, shift);
+
+          gl.uniform4fv(inputSizeUniformLocation, inputSize);
+          gl.uniform1f(scaleUniformLocation, scale);
+          gl.uniform3fv(offsetUniformLocation, offset);
+          gl.uniform1f(focusUniformLocation, focus);
+          gl.uniform1f(enlargeUniformLocation, enlarge);
+          gl.uniform1f(aspectUniformLocation, aspect);
 
           // Render
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
