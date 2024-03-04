@@ -56,7 +56,7 @@
       function loadImage(url) {
         return new Promise((resolve, reject) => {
           const image = new Image();
-          image.crossOrigin = "anonymous"; 
+          image.crossOrigin = 'anonymous';
           image.onload = () => resolve(image);
           image.onerror = reject;
           image.src = url;
@@ -81,21 +81,25 @@
         return renderMSDFImage(canvas, colorImg, depthImg);
       }
 
-      function getUrlParams() {
-          const params = new URLSearchParams(window.location.search);
-          let urlParams = {};
-          for(let param of params) {
-              let [key, value] = param;
-              urlParams[key] = value;
-          }
-          return urlParams;
+      function getUrlParams(defaultValues = {}) {
+        const params = new URLSearchParams(window.location.search);
+        let urlParams = { ...defaultValues };
+        for (let param of params) {
+          let [key, value] = param;
+          urlParams[key] = value;
+        }
+        return urlParams;
       }
 
-      // Usage:
-      const urlParams = getUrlParams();
+      const urlParams = getUrlParams({
+        art: 'eurydice-02',
+        str: '1',
+        fscale: '0.00', // '0.03'
+        fdepth: '0.05', // '0.02'
+      });
 
-      const ART = urlParams['art'] || 'eurydice-02'; 
-      const STRENGTH = +(urlParams['str'] || 1);
+      const ART = urlParams['art'];
+      const STRENGTH = +urlParams['str'];
 
       showPreview(
         'https://storage.drimgar.com/illustrations/' + ART + '.jpg',
@@ -103,10 +107,14 @@
       ).then(ctrl => {
         const previewDiv = document.getElementById('preview');
 
+        ctrl.setScaleFactor(+urlParams['fscale']);
+        ctrl.setDepthFactor(+urlParams['fdepth']);
+
         const loop = () => {
           const now = performance.now();
           const speed = 0.0025;
-          const strength = Math.abs(Math.sin(now * 0.00051)) * STRENGTH;
+          // const strength = Math.abs(Math.sin(now * 0.00051)) * STRENGTH;
+          const strength = STRENGTH;
           const shift = [
             //
             strength * Math.sin(now * speed),
@@ -159,6 +167,8 @@
           uniform sampler2D u_colorTexture;
           uniform sampler2D u_depthTexture;
           uniform vec2 u_shift;
+          uniform float u_scaleFactor;
+          uniform float u_depthFactor;
 
           in vec2 v_texCoord;
           out vec4 outColor;
@@ -170,21 +180,21 @@
 
           void main()
           {            
-              float str = length(u_shift);
+            float str = length(u_shift);
 
-              float depth = texture(u_depthTexture, v_texCoord).r;
-              float undepth = 1.0 - depth;
+            float depth = texture(u_depthTexture, v_texCoord).r;
+            float undepth = 1.0 - depth;
 
-              vec2 centeredTexCoord = v_texCoord - 0.5;
+            vec2 centeredTexCoord = v_texCoord - 0.5;
 
-              float scale = mix(1.0, 1.0 + 0.05 * str, depth);
-              vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
-              
-              float depth2 = texture(u_depthTexture, scaledTexCoord).r;
-              vec2 adjustedShift = smoothShift(u_shift, depth2);
-              vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * 0.03);
+            float scale = mix(1.0, 1.0 + u_scaleFactor * str, depth);
+            vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+            
+            float depth2 = texture(u_depthTexture, scaledTexCoord).r;
+            vec2 adjustedShift = smoothShift(u_shift, depth2);
+            vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
 
-              outColor = color;
+            outColor = color;
           }
         `;
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
@@ -246,6 +256,11 @@
         const colorTextureUniformLocation = gl.getUniformLocation(program, 'u_colorTexture');
         const depthTextureUniformLocation = gl.getUniformLocation(program, 'u_depthTexture');
 
+        let scaleFactor = 0.03,
+          depthFactor = 0.02;
+        const scaleFactorUniformLocation = gl.getUniformLocation(program, 'u_scaleFactor');
+        const depthFactorUniformLocation = gl.getUniformLocation(program, 'u_depthFactor');
+
         const shiftUniformLocation = gl.getUniformLocation(program, 'u_shift');
         let shift = [0.5, 0];
 
@@ -268,6 +283,9 @@
           gl.bindTexture(gl.TEXTURE_2D, depthTexture);
           gl.uniform1i(depthTextureUniformLocation, 1);
 
+          gl.uniform1f(scaleFactorUniformLocation, scaleFactor);
+          gl.uniform1f(depthFactorUniformLocation, depthFactor);
+
           gl.uniform2fv(shiftUniformLocation, shift);
 
           // Render
@@ -280,6 +298,14 @@
         return {
           setShift: function (newShift) {
             shift = newShift.map(v => v);
+            draw();
+          },
+          setScaleFactor: function (newScaleFactor) {
+            scaleFactor = newScaleFactor;
+            draw();
+          },
+          setDepthFactor: function (newDepthFactor) {
+            depthFactor = newDepthFactor;
             draw();
           },
         };
