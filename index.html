@@ -56,6 +56,7 @@
       function loadImage(url) {
         return new Promise((resolve, reject) => {
           const image = new Image();
+          image.crossOrigin = "anonymous"; 
           image.onload = () => resolve(image);
           image.onerror = reject;
           image.src = url;
@@ -80,21 +81,32 @@
         return renderMSDFImage(canvas, colorImg, depthImg);
       }
 
-      const ART = "eurydice-02";
+      function getUrlParams() {
+          const params = new URLSearchParams(window.location.search);
+          let urlParams = {};
+          for(let param of params) {
+              let [key, value] = param;
+              urlParams[key] = value;
+          }
+          return urlParams;
+      }
+
+      // Usage:
+      const urlParams = getUrlParams();
+
+      const ART = urlParams['art'] || 'eurydice-02'; 
+      const STRENGTH = +(urlParams['str'] || 1);
 
       showPreview(
-        //
-        // '/img/unnamed.jpg',
-        // '/img/depth.png'
-        "https://storage.drimgar.com/illustrations/" + ART + ".jpg",
-        "https://drimgar-temp.web.app/" + ART + "-dpt_beit_large_512.png"
+        'https://storage.drimgar.com/illustrations/' + ART + '.jpg',
+        'https://drimgar-temp.web.app/' + ART.replace(/\//g, '+') + '-dpt_beit_large_512.png'
       ).then(ctrl => {
         const previewDiv = document.getElementById('preview');
 
         const loop = () => {
           const now = performance.now();
           const speed = 0.0025;
-          const strength = Math.abs(Math.sin(now * 0.00051));
+          const strength = Math.abs(Math.sin(now * 0.00051)) * STRENGTH;
           const shift = [
             //
             strength * Math.sin(now * speed),
