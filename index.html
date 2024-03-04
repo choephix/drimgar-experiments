@@ -84,7 +84,7 @@
         float depth = texture(u_depthTexture, scaledTexCoord).r;
 
         float scaleD = mix(1.0, scale, depth);
-        vec2 scaledTexCoordD = (centeredTexCoord / scaleD) + 0.5;
+        vec2 scaledTexCoordD = (centeredTexCoord / (scaleD * 1.03)) + 0.5;
 
         vec2 adjustedShift = smoothShift(u_shift, 1.0 - depth);
         vec4 color = texture(u_colorTexture, scaledTexCoordD - adjustedShift * str * u_depthFactor);
