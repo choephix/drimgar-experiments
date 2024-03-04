@@ -76,18 +76,18 @@
       void main()
       {
         float str = length(u_shift);
-
-        float depth = texture(u_depthTexture, v_texCoord).r;
-        float undepth = 1.0 - depth;
-
+        
+        float scale = u_scaleFactor;
         vec2 centeredTexCoord = v_texCoord - 0.5;
-
-        float scale = mix(1.0 - u_scaleFactor * str, 1.0, depth);
         vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+        
+        float depth = texture(u_depthTexture, scaledTexCoord).r;
 
-        float depth2 = texture(u_depthTexture, scaledTexCoord).r;
-        vec2 adjustedShift = smoothShift(u_shift, depth2);
-        vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
+        float scaleD = mix(1.0, scale, depth);
+        vec2 scaledTexCoordD = (centeredTexCoord / scaleD) + 0.5;
+
+        vec2 adjustedShift = smoothShift(u_shift, 1.0 - depth);
+        vec4 color = texture(u_colorTexture, scaledTexCoordD - adjustedShift * str * u_depthFactor);
 
         outColor = color;
       }
@@ -141,7 +141,7 @@
       const urlParams = getUrlParams({
         art: 'eurydice-02',
         str: '1',
-        fscale: '0.090', // '0.03'
+        fscale: '1.00', // '0.03'
         fdepth: '0.05', // '0.02'
       });
 
