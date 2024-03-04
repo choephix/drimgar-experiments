@@ -80,13 +80,14 @@
         return renderMSDFImage(canvas, colorImg, depthImg);
       }
 
-      // showPreview("https://storage.drimgar.com/illustrations/eurydice-02.jpg")
+      const ART = "eurydice-02";
+
       showPreview(
         //
         // '/img/unnamed.jpg',
         // '/img/depth.png'
-        './img/eurydice-02.jpg',
-        './img/eurydice-02-depth.jpg'
+        "https://storage.drimgar.com/illustrations/" + ART + ".jpg",
+        "https://drimgar-temp.web.app/" + ART + "-dpt_beit_large_512.png"
       ).then(ctrl => {
         const previewDiv = document.getElementById('preview');
 
