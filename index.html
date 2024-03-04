@@ -45,6 +45,53 @@
         pointer-events: none;
       }
     </style>
+    <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
+      in vec2 a_position;
+      in vec2 a_texCoord;
+      out vec2 v_texCoord;
+
+      void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+        v_texCoord = a_texCoord;
+      }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
+      precision mediump float;
+
+      uniform sampler2D u_colorTexture;
+      uniform sampler2D u_depthTexture;
+      uniform vec2 u_shift;
+      uniform float u_scaleFactor;
+      uniform float u_depthFactor;
+
+      in vec2 v_texCoord;
+      out vec4 outColor;
+
+      vec2 smoothShift(vec2 shift, float depth) {
+        float smoothDepth = smoothstep(0.0, 1.0, depth);
+        return shift * smoothDepth;
+      }
+
+      void main()
+      {
+        float str = length(u_shift);
+
+        float depth = texture(u_depthTexture, v_texCoord).r;
+        float undepth = 1.0 - depth;
+
+        vec2 centeredTexCoord = v_texCoord - 0.5;
+
+        float scale = mix(1.0 - u_scaleFactor * str, 1.0, depth);
+        vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+
+        float depth2 = texture(u_depthTexture, scaledTexCoord).r;
+        vec2 adjustedShift = smoothShift(u_shift, depth2);
+        vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
+
+        outColor = color;
+      }
+    </script>
   </head>
   <body>
     <div class="container">
@@ -94,7 +141,7 @@
       const urlParams = getUrlParams({
         art: 'eurydice-02',
         str: '1',
-        fscale: '0.00', // '0.03'
+        fscale: '0.090', // '0.03'
         fdepth: '0.05', // '0.02'
       });
 
@@ -140,17 +187,9 @@
           throw new Error('WebGL context not available');
         }
 
-        // Create vertex shader
-        const vertexShaderSource = `#version 300 es
-          in vec2 a_position;
-          in vec2 a_texCoord;
-          out vec2 v_texCoord;
 
-          void main() {
-            gl_Position = vec4(a_position, 0.0, 1.0);
-            v_texCoord = a_texCoord;
-          }
-        `;
+        // Create vertex shader
+        const vertexShaderSource = document.getElementById('vertex-shader').textContent;
         const vertexShader = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vertexShader, vertexShaderSource);
         gl.compileShader(vertexShader);
@@ -161,42 +200,7 @@
         }
 
         // Create fragment shader
-        const fragmentShaderSource = `#version 300 es
-          precision mediump float;
-
-          uniform sampler2D u_colorTexture;
-          uniform sampler2D u_depthTexture;
-          uniform vec2 u_shift;
-          uniform float u_scaleFactor;
-          uniform float u_depthFactor;
-
-          in vec2 v_texCoord;
-          out vec4 outColor;
-
-          vec2 smoothShift(vec2 shift, float depth) {
-            float smoothDepth = smoothstep(0.0, 1.0, depth);
-            return shift * smoothDepth;
-          }
-
-          void main()
-          {            
-            float str = length(u_shift);
-
-            float depth = texture(u_depthTexture, v_texCoord).r;
-            float undepth = 1.0 - depth;
-
-            vec2 centeredTexCoord = v_texCoord - 0.5;
-
-            float scale = mix(1.0, 1.0 + u_scaleFactor * str, depth);
-            vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
-            
-            float depth2 = texture(u_depthTexture, scaledTexCoord).r;
-            vec2 adjustedShift = smoothShift(u_shift, depth2);
-            vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
-
-            outColor = color;
-          }
-        `;
+        const fragmentShaderSource = document.getElementById('fragment-shader').textContent;
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         gl.shaderSource(fragmentShader, fragmentShaderSource);
         gl.compileShader(fragmentShader);
