@@ -194,7 +194,7 @@
 
                     float depth = texture(u_depthTexture, scaledTexCoord).r;
 
-                    float scaleD = mix(1.0, scale, depth);
+                    float scaleD = mix(0.95, scale, depth);
                     vec2 scaledTexCoordD = (centeredTexCoord / (scaleD * 1.03)) + 0.5;
 
                     vec2 adjustedShift = smoothShift(u_shift, 1.0 - depth);
@@ -258,7 +258,7 @@
       const urlParams = getUrlParams({
         art: 'eurydice-02',
         str: '1',
-        fscale: '1.00', // '0.03'
+        fscale: '1.0', // '0.03'
         fdepth: '0.05', // '0.02'
         alt: undefined,
       });
