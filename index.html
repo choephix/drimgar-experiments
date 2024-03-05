@@ -95,10 +95,14 @@
   </head>
   <body>
     <div class="container">
+      <div class="sidebar">
+        <div id="links"></div>
+      </div>
       <div class="preview" id="preview">
         <p>Select a file to preview</p>
       </div>
     </div>
+    <script src="load-links.js"></script>
     <script>
       function loadImage(url) {
         return new Promise((resolve, reject) => {
