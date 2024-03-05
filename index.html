@@ -8,28 +8,47 @@
         background-color: #f0f0f0;
         font-family: sans-serif;
       }
+
       .container {
         display: flex;
         flex-direction: row;
         height: 100vh;
       }
+
       .sidebar {
         flex: 0 0 20vw;
         padding: 10px;
       }
-      /** reset <a> styles */
+
       a.link {
         text-decoration: none;
         color: #000;
+        transition: color 0.2s ease-in, left 0.5s ease-in; /* fast color transition on hover */
       }
+
       .link {
         padding: 5px;
         cursor: pointer;
         user-select: all;
+        position: relative;
+        left: -100px; /* start off the screen */
+        animation: slideIn 0.5s forwards; /* slide in from the left */
       }
+
       .link:hover {
         color: #36f;
+        transition: color 1s ease-out; /* slow color transition on out */
       }
+
+      @keyframes slideIn {
+        0% {
+          left: -100px;
+        }
+        100% {
+          left: 0;
+        }
+      }
+
       .preview {
         flex: 1;
         display: flex;
@@ -44,58 +63,145 @@
         border-radius: 20px;
         overflow: hidden;
       }
+
       .preview canvas {
         max-width: 50vw;
         max-height: 50vh;
         pointer-events: none;
+        animation: popIn 0.5s forwards; /* pop in on appear */
+      }
+
+      @keyframes popIn {
+        0% {
+          transform: scale(0);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /****/
+
+      .spinner {
+        animation: rotate 2s linear infinite;
+        width: 50px;
+        height: 50px;
+
+        /* Center the spinner */
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .path {
+        stroke: #5652bf;
+        stroke-linecap: round;
+        animation: dash 1.5s ease-in-out infinite;
+      }
+
+      @keyframes rotate {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes dash {
+        0% {
+          stroke-dasharray: 1, 150;
+          stroke-dashoffset: 0;
+        }
+        50% {
+          stroke-dasharray: 90, 150;
+          stroke-dashoffset: -35;
+        }
+        100% {
+          stroke-dasharray: 90, 150;
+          stroke-dashoffset: -124;
+        }
       }
     </style>
     <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
-            in vec2 a_position;
-            in vec2 a_texCoord;
-            out vec2 v_texCoord;
+                        in vec2 a_position;
+                        in vec2 a_texCoord;
+                        out vec2 v_texCoord;
 
-            void main() {
-              gl_Position = vec4(a_position, 0.0, 1.0);
-              v_texCoord = a_texCoord;
-            }
+                        void main() {
+                          gl_Position = vec4(a_position, 0.0, 1.0);
+                          v_texCoord = a_texCoord;
+                        }
     </script>
-
     <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
-            precision mediump float;
+                        precision mediump float;
 
-            uniform sampler2D u_colorTexture;
-            uniform sampler2D u_depthTexture;
-            uniform vec2 u_shift;
-            uniform float u_scaleFactor;
-            uniform float u_depthFactor;
+                        uniform sampler2D u_colorTexture;
+                        uniform sampler2D u_depthTexture;
+                        uniform vec2 u_shift;
+                        uniform float u_scaleFactor;
+                        uniform float u_depthFactor;
 
-            in vec2 v_texCoord;
-            out vec4 outColor;
+                        in vec2 v_texCoord;
+                        out vec4 outColor;
 
-            vec2 smoothShift(vec2 shift, float depth) {
-              float smoothDepth = smoothstep(0.0, 1.0, depth);
-              return shift * smoothDepth;
-            }
+                        vec2 smoothShift(vec2 shift, float depth) {
+                          float smoothDepth = smoothstep(0.0, 1.0, depth);
+                          return shift * smoothDepth;
+                        }
 
-            void main()
-            {
-              float str = length(u_shift);
+                        void main()
+                        {
+                          float str = length(u_shift);
 
-              float depth = texture(u_depthTexture, v_texCoord).r;
-              float undepth = 1.0 - depth;
+                          float depth = texture(u_depthTexture, v_texCoord).r;
+                          float undepth = 1.0 - depth;
 
-              vec2 centeredTexCoord = v_texCoord - 0.5;
+                          vec2 centeredTexCoord = v_texCoord - 0.5;
 
-              float scale = mix(1.0 - u_scaleFactor * str, 1.0, depth);
-              vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+                          float scale = mix(1.0 - 0.05 * u_scaleFactor * str, 1.0, depth);
+                          vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
 
-              float depth2 = texture(u_depthTexture, scaledTexCoord).r;
-              vec2 adjustedShift = smoothShift(u_shift, depth2);
-              vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
+                          float depth2 = texture(u_depthTexture, scaledTexCoord).r;
+                          vec2 adjustedShift = smoothShift(u_shift, depth2);
+                          vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
 
-              outColor = color;
-            }
+                          outColor = color;
+                        }
+    </script>
+    <script id="fragment-shader-alt" type="x-shader/x-fragment">#version 300 es
+                  precision mediump float;
+
+                  uniform sampler2D u_colorTexture;
+                  uniform sampler2D u_depthTexture;
+                  uniform vec2 u_shift;
+                  uniform float u_scaleFactor;
+                  uniform float u_depthFactor;
+
+                  in vec2 v_texCoord;
+                  out vec4 outColor;
+
+                  vec2 smoothShift(vec2 shift, float depth) {
+                    float smoothDepth = smoothstep(0.0, 1.0, depth);
+                    return shift * smoothDepth;
+                  }
+
+                  void main()
+                  {
+                    float str = length(u_shift);
+
+                    float scale = u_scaleFactor;
+                    vec2 centeredTexCoord = v_texCoord - 0.5;
+                    vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+
+                    float depth = texture(u_depthTexture, scaledTexCoord).r;
+
+                    float scaleD = mix(1.0, scale, depth);
+                    vec2 scaledTexCoordD = (centeredTexCoord / (scaleD * 1.03)) + 0.5;
+
+                    vec2 adjustedShift = smoothShift(u_shift, 1.0 - depth);
+                    vec4 color = texture(u_colorTexture, scaledTexCoordD - adjustedShift * str * u_depthFactor);
+
+                    outColor = color;
+                  }
     </script>
   </head>
   <body>
@@ -104,7 +210,9 @@
         <div id="links"></div>
       </div>
       <div class="preview" id="preview">
-        <p>Select a file to preview</p>
+        <svg class="spinner" viewBox="0 0 50 50">
+          <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+        </svg>
       </div>
     </div>
     <script src="load-links.js"></script>
@@ -150,8 +258,9 @@
       const urlParams = getUrlParams({
         art: 'eurydice-02',
         str: '1',
-        fscale: '0.090', // '0.03'
+        fscale: '1.00', // '0.03'
         fdepth: '0.05', // '0.02'
+        alt: undefined,
       });
 
       const ART = urlParams['art'];
@@ -208,7 +317,9 @@
         }
 
         // Create fragment shader
-        const fragmentShaderSource = document.getElementById('fragment-shader').textContent;
+        const fragmentShaderSourceId =
+          urlParams['alt'] !== undefined ? 'fragment-shader-alt' : 'fragment-shader';
+        const fragmentShaderSource = document.getElementById(fragmentShaderSourceId).textContent;
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         gl.shaderSource(fragmentShader, fragmentShaderSource);
         gl.compileShader(fragmentShader);
