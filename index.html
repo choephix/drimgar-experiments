@@ -17,6 +17,11 @@
         flex: 0 0 20vw;
         padding: 10px;
       }
+      /** reset <a> styles */
+      a.link {
+        text-decoration: none;
+        color: #000;
+      }
       .link {
         padding: 5px;
         cursor: pointer;
@@ -46,51 +51,51 @@
       }
     </style>
     <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
-      in vec2 a_position;
-      in vec2 a_texCoord;
-      out vec2 v_texCoord;
+            in vec2 a_position;
+            in vec2 a_texCoord;
+            out vec2 v_texCoord;
 
-      void main() {
-        gl_Position = vec4(a_position, 0.0, 1.0);
-        v_texCoord = a_texCoord;
-      }
+            void main() {
+              gl_Position = vec4(a_position, 0.0, 1.0);
+              v_texCoord = a_texCoord;
+            }
     </script>
 
     <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
-      precision mediump float;
+            precision mediump float;
 
-      uniform sampler2D u_colorTexture;
-      uniform sampler2D u_depthTexture;
-      uniform vec2 u_shift;
-      uniform float u_scaleFactor;
-      uniform float u_depthFactor;
+            uniform sampler2D u_colorTexture;
+            uniform sampler2D u_depthTexture;
+            uniform vec2 u_shift;
+            uniform float u_scaleFactor;
+            uniform float u_depthFactor;
 
-      in vec2 v_texCoord;
-      out vec4 outColor;
+            in vec2 v_texCoord;
+            out vec4 outColor;
 
-      vec2 smoothShift(vec2 shift, float depth) {
-        float smoothDepth = smoothstep(0.0, 1.0, depth);
-        return shift * smoothDepth;
-      }
+            vec2 smoothShift(vec2 shift, float depth) {
+              float smoothDepth = smoothstep(0.0, 1.0, depth);
+              return shift * smoothDepth;
+            }
 
-      void main()
-      {
-        float str = length(u_shift);
+            void main()
+            {
+              float str = length(u_shift);
 
-        float depth = texture(u_depthTexture, v_texCoord).r;
-        float undepth = 1.0 - depth;
+              float depth = texture(u_depthTexture, v_texCoord).r;
+              float undepth = 1.0 - depth;
 
-        vec2 centeredTexCoord = v_texCoord - 0.5;
+              vec2 centeredTexCoord = v_texCoord - 0.5;
 
-        float scale = mix(1.0 - u_scaleFactor * str, 1.0, depth);
-        vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+              float scale = mix(1.0 - u_scaleFactor * str, 1.0, depth);
+              vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
 
-        float depth2 = texture(u_depthTexture, scaledTexCoord).r;
-        vec2 adjustedShift = smoothShift(u_shift, depth2);
-        vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
+              float depth2 = texture(u_depthTexture, scaledTexCoord).r;
+              vec2 adjustedShift = smoothShift(u_shift, depth2);
+              vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
 
-        outColor = color;
-      }
+              outColor = color;
+            }
     </script>
   </head>
   <body>
@@ -190,7 +195,6 @@
         if (!gl) {
           throw new Error('WebGL context not available');
         }
-
 
         // Create vertex shader
         const vertexShaderSource = document.getElementById('vertex-shader').textContent;

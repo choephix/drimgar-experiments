@@ -1,7 +1,11 @@
 async function loadManifestAndCreateLinks() {
   const response = await fetch('./manifest.csv');
   const data = await response.text();
-  const items = data.split('\n');
+  const items = data
+    .split('\n')
+    .map(item => item.trim())
+    .filter(item => item.length > 0)
+    .sort();
 
   const listElement = document.createElement('ul');
   items.forEach(item => {
@@ -10,7 +14,7 @@ async function loadManifestAndCreateLinks() {
     const link = document.createElement('a');
     link.href = `./?art=${item}`;
     link.textContent = item;
-    link.class = 'link';
+    link.classList.add('link');
     listItem.appendChild(link);
     listElement.appendChild(listItem);
   });
