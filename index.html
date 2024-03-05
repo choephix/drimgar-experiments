@@ -153,7 +153,6 @@
                           float str = length(u_shift);
 
                           float depth = texture(u_depthTexture, v_texCoord).r;
-                          float undepth = 1.0 - depth;
 
                           vec2 centeredTexCoord = v_texCoord - 0.5;
 
@@ -161,6 +160,10 @@
                           vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
 
                           float depth2 = texture(u_depthTexture, scaledTexCoord).r;
+                          
+                          float sigma = 1.0; // Adjust this value to control the steepness of the curve
+                          depth2 = 1.0 / (1.0 + exp(-sigma * depth2));
+
                           vec2 adjustedShift = smoothShift(u_shift, depth2);
                           vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
 
@@ -193,6 +196,9 @@
                     vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
 
                     float depth = texture(u_depthTexture, scaledTexCoord).r;
+                          
+                    float sigma = 1.0; // Adjust this value to control the steepness of the curve
+                    depth = 1.0 / (1.0 + exp(-sigma * depth));
 
                     float scaleD = mix(0.95, scale, depth);
                     vec2 scaledTexCoordD = (centeredTexCoord / (scaleD * 1.03)) + 0.5;
