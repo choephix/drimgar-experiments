@@ -1,3 +1,33 @@
+function getUrlParams(defaultValues = {}) {
+  const params = new URLSearchParams(window.location.search);
+  let urlParams = { ...defaultValues };
+  for (let param of params) {
+    let [key, value] = param;
+    urlParams[key] = value;
+  }
+  return urlParams;
+}
+
+const urlParams = getUrlParams({
+  art: 'eurydice-02',
+  str: '1',
+  fscale: '1.0', // '0.03'
+  fdepth: '0.05', // '0.02'
+  alt: undefined,
+});
+
+const ART_C = urlParams['art'];
+const ART_D = ART_C.replace(/\//g, '+');
+const colorTextureUrl = 'https://storage.drimgar.com/illustrations/' + ART_C + '.jpg';
+const depthTextureUrl = 'https://drimgar-temp.web.app/' + ART_D + '-dpt_beit_large_512.png';
+
+const STRENGTH = +urlParams['str'];
+
+const vertexShaderSource = document.getElementById('vertex-shader').textContent;
+const fragmentShaderSource = document.getElementById('fragment-shader').textContent;
+
+/** - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - **/
+
 function loadImage(url) {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -26,27 +56,6 @@ async function showPreview(colorImgUrl, depthImgUrl) {
   return renderMSDFImage(canvas, colorImg, depthImg);
 }
 
-function getUrlParams(defaultValues = {}) {
-  const params = new URLSearchParams(window.location.search);
-  let urlParams = { ...defaultValues };
-  for (let param of params) {
-    let [key, value] = param;
-    urlParams[key] = value;
-  }
-  return urlParams;
-}
-
-const urlParams = getUrlParams({
-  art: 'eurydice-02',
-  str: '1',
-  fscale: '1.0', // '0.03'
-  fdepth: '0.05', // '0.02'
-  alt: undefined,
-});
-
-const ART = urlParams['art'];
-const STRENGTH = +urlParams['str'];
-
 function renderMSDFImage(canvas, colorImg, depthImg) {
   const gl = canvas.getContext('webgl');
   if (!gl) {
@@ -54,7 +63,6 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   }
 
   // Create vertex shader
-  const vertexShaderSource = document.getElementById('vertex-shader-pix').textContent;
   const vertexShader = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vertexShader, vertexShaderSource);
   gl.compileShader(vertexShader);
@@ -65,8 +73,6 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   }
 
   // Create fragment shader
-  const fragmentShaderSourceId = 'fragment-shader-pix';
-  const fragmentShaderSource = document.getElementById(fragmentShaderSourceId).textContent;
   const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(fragmentShader, fragmentShaderSource);
   gl.compileShader(fragmentShader);
@@ -204,37 +210,30 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   };
 }
 
-function addAltChecker() {
-  showPreview(
-    'https://storage.drimgar.com/illustrations/' + ART + '.jpg',
-    'https://drimgar-temp.web.app/' + ART.replace(/\//g, '+') + '-dpt_beit_large_512.png'
-  ).then(ctrl => {
-    const previewDiv = document.getElementById('preview');
+showPreview(colorTextureUrl, depthTextureUrl).then(ctrl => {
+  const previewDiv = document.getElementById('preview');
 
-    ctrl.setScaleFactor(+urlParams['fscale']);
-    ctrl.setDepthFactor(+urlParams['fdepth']);
+  ctrl.setScaleFactor(+urlParams['fscale']);
+  ctrl.setDepthFactor(+urlParams['fdepth']);
 
-    const loop = () => {
-      const now = performance.now();
-      const speed = 0.0025;
-      // const strength = Math.abs(Math.sin(now * 0.00051)) * STRENGTH;
-      const strength = STRENGTH;
-      const shift = [
-        //
-        strength * Math.sin(now * speed),
-        strength * Math.cos(now * speed),
-      ];
+  const loop = () => {
+    const now = performance.now();
+    const speed = 0.0025;
+    // const strength = Math.abs(Math.sin(now * 0.00051)) * STRENGTH;
+    const strength = STRENGTH;
+    const shift = [
+      //
+      strength * Math.sin(now * speed),
+      strength * Math.cos(now * speed),
+    ];
 
-      previewDiv.style.transform = `
+    previewDiv.style.transform = `
             perspective(600px)
             rotateY(${-shift[0] * 10}deg)
             rotateX(${shift[1] * 10}deg)
           `;
-      ctrl.setShift(shift);
-      requestAnimationFrame(loop);
-    };
-    loop();
-  });
-}
-
-window.addEventListener('DOMContentLoaded', loadManifestAndCreateLinks);
+    ctrl.setShift(shift);
+    requestAnimationFrame(loop);
+  };
+  loop();
+});

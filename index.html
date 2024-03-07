@@ -146,7 +146,7 @@
       void main(void ) {
         gl_Position = filterVertexPosition();
         vTextureCoord = filterTextureCoord();
-        
+
         vTextureCoord = aVertexPosition;
         vFilterCoord = (filterMatrix * vec3(vTextureCoord, 1.0)).xy;
       }
@@ -169,21 +169,21 @@
       vec3 perspective(
         vec2 uv,
         vec3 cameraShift,
-        float convergence 
+        float convergence
       ) {
-        vec3 ray_origin = vec3(uv - 0.5, 0) * (1.0 - convergence * cameraShift.z); 
-        vec3 ray_direction = vec3(0, 0, 1); 
+        vec3 ray_origin = vec3(uv - 0.5, 0) * (1.0 - convergence * cameraShift.z);
+        vec3 ray_direction = vec3(0, 0, 1);
 
-        
+
         ray_origin.xy -= cameraShift.xy * convergence;
         ray_direction.xy += (uv - 0.5) * cameraShift.z + cameraShift.xy;
 
-        const int step_count = 45; 
+        const int step_count = 45;
         const float hit_threshold = 0.01;
         ray_direction /= float(step_count);
 
-        
-        
+
+
         vec3 color = vec3(0.0);
 
         for (int i = 0; i < step_count; i++) {
@@ -193,8 +193,8 @@
             if (ray_origin.z - scene_z < hit_threshold) {
               break;
             }
-            ray_origin -= ray_direction; 
-            ray_direction /= 2.0; 
+            ray_origin -= ray_direction;
+            ray_direction /= 2.0;
           }
         }
 
@@ -237,6 +237,25 @@
         #endif
       }
     </script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      attribute vec2 aVertexPosition;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+        vTextureCoord = aVertexPosition;
+      }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec2 vTextureCoord;
+      uniform sampler2D imageSampler;
+
+      void main(void) {
+        gl_FragColor = texture2D(imageSampler, vTextureCoord);
+      }
+    </script>
   </head>
   <body>
     <div class="container">
@@ -244,9 +263,10 @@
         <div id="links"></div>
       </div>
       <div class="preview" id="preview">
-        <svg class="spinner" viewBox="0 0 50 50">
+        <h1>?</h1>
+        <!-- <svg class="spinner" viewBox="0 0 50 50">
           <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
-        </svg>
+        </svg> -->
       </div>
     </div>
     <script src="load-links.js"></script>
