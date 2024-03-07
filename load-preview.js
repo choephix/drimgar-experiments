@@ -110,18 +110,33 @@ gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
 // Get the location of the position attribute
-const positionLocation = gl.getAttribLocation(program, 'position');
+const positionLocation = gl.getAttribLocation(program, 'aVertexPosition');
 gl.enableVertexAttribArray(positionLocation);
 gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
 // Bind the textures
 gl.activeTexture(gl.TEXTURE0);
 gl.bindTexture(gl.TEXTURE_2D, colorTexture);
-gl.uniform1i(gl.getUniformLocation(program, 'colorTexture'), 0);
+gl.uniform1i(gl.getUniformLocation(program, 'imageSampler'), 0);
 
 gl.activeTexture(gl.TEXTURE1);
 gl.bindTexture(gl.TEXTURE_2D, depthTexture);
-gl.uniform1i(gl.getUniformLocation(program, 'depthTexture'), 1);
+gl.uniform1i(gl.getUniformLocation(program, 'mapSampler'), 1);
 
 // Draw the geometry
+gl.viewport(0, 0, canvas.width, canvas.height);
 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+/** - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - * - **/
+
+function draw() {
+  // Draw the geometry
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // Request the next frame
+  requestAnimationFrame(draw);
+}
+
+// Start the drawing loop
+draw();

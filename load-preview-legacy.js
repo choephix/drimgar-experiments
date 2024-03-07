@@ -123,8 +123,14 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
   // Set up attributes and uniforms
-  const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-  const texCoordAttributeLocation = gl.getAttribLocation(program, 'a_texCoord');
+  const positionAttributeLocation = gl.getAttribLocation(program, 'aVertexPosition');
+  gl.enableVertexAttribArray(positionAttributeLocation);
+  gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+  // const positionAttributeLocation = gl.getAttribLocation(program, 'aVertexPosition');
+  // const texCoordAttributeLocation = gl.getAttribLocation(program, 'texCoord');
+  // console.log('positionAttributeLocation', positionAttributeLocation);
+  // console.log('texCoordAttributeLocation', texCoordAttributeLocation);
 
   // Set up uniforms
   const colorTextureUniformLocation = gl.getUniformLocation(program, 'imageSampler');
@@ -163,9 +169,9 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-    gl.enableVertexAttribArray(texCoordAttributeLocation);
-    gl.vertexAttribPointer(texCoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    // gl.enableVertexAttribArray(texCoordAttributeLocation);
+    // gl.vertexAttribPointer(texCoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, colorTexture);
@@ -197,16 +203,14 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   return {
     setShift: function (newShift) {
       shift = newShift.map(v => v);
-      draw();
     },
     setScaleFactor: function (newScaleFactor) {
       scaleFactor = newScaleFactor;
-      draw();
     },
     setDepthFactor: function (newDepthFactor) {
       depthFactor = newDepthFactor;
-      draw();
     },
+    draw,
   };
 }
 
@@ -228,11 +232,15 @@ showPreview(colorTextureUrl, depthTextureUrl).then(ctrl => {
     ];
 
     previewDiv.style.transform = `
-            perspective(600px)
-            rotateY(${-shift[0] * 10}deg)
-            rotateX(${shift[1] * 10}deg)
-          `;
+      perspective(600px)
+      rotateY(${-shift[0] * 10}deg)
+      rotateX(${shift[1] * 10}deg)
+    `;
+
     ctrl.setShift(shift);
+    
+    ctrl.draw(shift);
+
     requestAnimationFrame(loop);
   };
   loop();

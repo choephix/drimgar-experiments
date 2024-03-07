@@ -5,7 +5,7 @@
     <style>
       body {
         margin: 0;
-        background-color: #f0f0f0;
+        background-color: rgb(100, 200, 255);
         font-family: sans-serif;
       }
 
@@ -243,17 +243,20 @@
 
       void main(void) {
         gl_Position = vec4(aVertexPosition, 0.0, 1.0);
-        vTextureCoord = aVertexPosition;
+        vTextureCoord = aVertexPosition * 0.5 + 0.5; // convert from (-1,1) to (0,1)
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">
-      precision mediump float;
+      precision highp float;
 
       varying vec2 vTextureCoord;
       uniform sampler2D imageSampler;
+      uniform sampler2D mapSampler;
 
       void main(void) {
-        gl_FragColor = texture2D(imageSampler, vTextureCoord);
+        vec4 imageColor = texture2D(imageSampler, vTextureCoord);
+        float alpha = texture2D(mapSampler, vTextureCoord).r;
+        gl_FragColor = vec4(imageColor.rgb, 1.0);
       }
     </script>
   </head>
@@ -270,6 +273,7 @@
       </div>
     </div>
     <script src="load-links.js"></script>
-    <script src="load-preview.js"></script>
+    <!-- <script src="load-preview.js"></script> -->
+    <script src="load-preview-legacy.js"></script>
   </body>
 </html>
