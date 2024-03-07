@@ -86,6 +86,8 @@ image.crossOrigin = 'anonymous'; // Add this line
 image.onload = function() {
   gl.bindTexture(gl.TEXTURE_2D, colorTexture);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  canvas.width = image.width;
+  canvas.height = image.height;
 };
 image.src = colorTextureUrl;
 
