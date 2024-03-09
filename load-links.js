@@ -13,14 +13,14 @@ function addAltChecker() {
     } else {
       params.delete('alt');
     }
-    params.set('fscale', checkbox.checked ? '1.2' : '1.0')
+    params.set('fscale', checkbox.checked ? '1.2' : '1.0');
     url.search = params.toString();
     window.location.href = url; // refresh the page outright
   });
   const label = document.createElement('label');
   label.htmlFor = 'altToggle';
   label.textContent = 'Toggle alt';
-  
+
   const sidebarElement = document.querySelector('#links');
   sidebarElement.appendChild(checkbox);
   sidebarElement.appendChild(label);
@@ -51,6 +51,7 @@ async function loadManifestAndCreateLinks() {
     link.href = url.toString();
     link.textContent = item;
     link.classList.add('link');
+    link.onclick = () => window.setArtPath?.(item);
     listItem.appendChild(link);
     listElement.appendChild(listItem);
   });

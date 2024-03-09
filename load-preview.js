@@ -181,7 +181,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     focus: 0.2,
     enlarge: 1.0,
     aspect: 1.0,
-    inputSize: [1.0, 3.0, 1.0, 1.0],
+    inputSize: [1.0, 1.0, 1.0, 1.0],
     outputFrame: [-1, 1, 2.0, 2.0],
 
     //
@@ -235,13 +235,8 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   return {
     setShift: function (newShift) {
       uniforms.offset[0] = newShift[0] * -uniforms.offsetMultiplier;
+      // uniforms.offset[1] = newShift[1] * uniforms.offsetMultiplier;
       uniforms.offset[2] = newShift[1] * -uniforms.offsetMultiplier;
-    },
-    setScaleFactor: function (newScaleFactor) {
-      scaleFactor = newScaleFactor;
-    },
-    setDepthFactor: function (newDepthFactor) {
-      depthFactor = newDepthFactor;
     },
     draw,
   };
