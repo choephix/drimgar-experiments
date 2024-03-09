@@ -54,9 +54,6 @@ const ART_DPT = `./img/${ART}-depth.jpg`;
 showPreview(ART_COL, ART_DPT).then(ctrl => {
   const previewDiv = document.getElementById('preview');
 
-  ctrl.setScaleFactor(+urlParams['fscale']);
-  ctrl.setDepthFactor(+urlParams['fdepth']);
-
   const loop = () => {
     const now = performance.now();
     const speed = 0.0025;
@@ -74,6 +71,8 @@ showPreview(ART_COL, ART_DPT).then(ctrl => {
             rotateX(${shift[1] * 10}deg)
           `;
     ctrl.setShift(shift);
+    ctrl.draw();
+
     requestAnimationFrame(loop);
   };
   loop();
@@ -157,26 +156,8 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   const colorTextureUniformLocation = gl.getUniformLocation(program, 'imageSampler');
   const depthTextureUniformLocation = gl.getUniformLocation(program, 'mapSampler');
 
-  let scaleFactor = 0.03,
-    depthFactor = 0.02;
-  const scaleFactorUniformLocation = gl.getUniformLocation(program, 'u_scaleFactor');
-  const depthFactorUniformLocation = gl.getUniformLocation(program, 'u_depthFactor');
-
-  const shiftUniformLocation = gl.getUniformLocation(program, 'u_shift');
-  let shift = [0.5, 0];
-
   let projectionMatrixLocation = gl.getUniformLocation(program, 'projectionMatrix');
   let filterMatrixLocation = gl.getUniformLocation(program, 'filterMatrix');
-
-  let projectionMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-  let filterMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-
-  let scale = 1.0; // replace with actual value
-  let offset = [0.0, 0.0, 0.0]; // replace with actual values
-  let focus = 1.0; // replace with actual value
-  let enlarge = 1.0; // replace with actual value
-  let aspect = 1.0; // replace with actual value
-  let inputSize = [1.0, 1.0, 1.0, 1.0]; // replace with actual values
 
   let scaleLocation = gl.getUniformLocation(program, 'scale');
   let offsetLocation = gl.getUniformLocation(program, 'offset');
@@ -184,9 +165,33 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   let enlargeLocation = gl.getUniformLocation(program, 'enlarge');
   let aspectLocation = gl.getUniformLocation(program, 'aspect');
   let inputSizeLocation = gl.getUniformLocation(program, 'inputSize');
-
-  let outputFrame = [0.0, 0.0, 1.0, 1.0]; // replace with actual values
   let outputFrameLocation = gl.getUniformLocation(program, 'outputFrame');
+
+  // Create a new dat.GUI instance
+  let gui = new dat.GUI();
+
+  let projectionMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+  let filterMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+
+  // Define an object to hold your uniforms
+  let uniforms = {
+    scale: 1.0,
+    offset: [0.0, 0.0, 0.0],
+    focus: 0.2,
+    enlarge: 1.0,
+    aspect: 1.0,
+    inputSize: [1.0, 3.0, 1.0, 1.0],
+    outputFrame: [1, 1, 2.0, 2.0],
+  };
+
+  // Add controls for each uniform
+  gui.add(uniforms, 'scale', 0.1, 2.0);
+  gui.addColor(uniforms, 'offset');
+  gui.add(uniforms, 'focus', 0.1, 1.0);
+  gui.add(uniforms, 'enlarge', 0.1, 2.0);
+  gui.add(uniforms, 'aspect', 0.1, 2.0);
+  gui.addColor(uniforms, 'inputSize');
+  gui.addColor(uniforms, 'outputFrame');
 
   function draw() {
     gl.useProgram(program);
@@ -207,41 +212,32 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     gl.bindTexture(gl.TEXTURE_2D, depthTexture);
     gl.uniform1i(depthTextureUniformLocation, 1);
 
-    gl.uniform1f(scaleFactorUniformLocation, scaleFactor);
-    gl.uniform1f(depthFactorUniformLocation, depthFactor);
-
-    gl.uniform2fv(shiftUniformLocation, shift);
-
     gl.uniformMatrix3fv(projectionMatrixLocation, false, new Float32Array(projectionMatrix));
     gl.uniformMatrix3fv(filterMatrixLocation, false, new Float32Array(filterMatrix));
 
-    gl.uniform1f(scaleLocation, scale);
-    gl.uniform3fv(offsetLocation, new Float32Array(offset));
-    gl.uniform1f(focusLocation, focus);
-    gl.uniform1f(enlargeLocation, enlarge);
-    gl.uniform1f(aspectLocation, aspect);
-    gl.uniform4fv(inputSizeLocation, new Float32Array(inputSize));
-    gl.uniform4fv(outputFrameLocation, new Float32Array(outputFrame));
+    gl.uniform1f(scaleLocation, uniforms.scale);
+    gl.uniform3fv(offsetLocation, new Float32Array(uniforms.offset));
+    gl.uniform1f(focusLocation, uniforms.focus);
+    gl.uniform1f(enlargeLocation, uniforms.enlarge);
+    gl.uniform1f(aspectLocation, uniforms.aspect);
+    gl.uniform4fv(inputSizeLocation, new Float32Array(uniforms.inputSize));
+    gl.uniform4fv(outputFrameLocation, new Float32Array(uniforms.outputFrame));
 
     // Render
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 
-  // Initial draw
-  draw();
-
   return {
     setShift: function (newShift) {
-      shift = newShift.map(v => v);
-      draw();
+      uniforms.offset[0] = newShift[0] * -.1;
+      uniforms.offset[2] = newShift[1] * -.1;
     },
     setScaleFactor: function (newScaleFactor) {
       scaleFactor = newScaleFactor;
-      draw();
     },
     setDepthFactor: function (newDepthFactor) {
       depthFactor = newDepthFactor;
-      draw();
     },
+    draw
   };
 }
