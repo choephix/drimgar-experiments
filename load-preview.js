@@ -48,8 +48,8 @@ const ART = urlParams['art'];
 const STRENGTH = +urlParams['str'];
 
 const ART_COL = `https://storage.drimgar.com/illustrations/${ART}.jpg`;
-const ART_DPT = `./img/${ART}-depth.jpg`;
-// const ART_DPT = `https://drimgar-temp.web.app/${ART.replace(/\//g, '+')}-dpt_beit_large_512.png`;
+const ART_DPT = `https://temporar.web.app/${ART.replace(/\//g, '+')}-dpt_beit_large_512.png`;
+// const ART_DPT = `./img/${ART}-depth.jpg`;
 
 showPreview(ART_COL, ART_DPT).then(ctrl => {
   const previewDiv = document.getElementById('preview');
