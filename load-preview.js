@@ -169,10 +169,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   let filterMatrixLocation = gl.getUniformLocation(program, 'filterMatrix');
 
   let projectionMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-
   let filterMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-
-  // Assuming you have a WebGL2 context 'gl' and a compiled and linked program 'program'
 
   let scale = 1.0; // replace with actual value
   let offset = [0.0, 0.0, 0.0]; // replace with actual values
