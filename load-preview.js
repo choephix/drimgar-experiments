@@ -196,7 +196,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   gui.add(uniforms, 'aspect', 0.1, 2.0);
   gui.addColor(uniforms, 'inputSize');
   gui.addColor(uniforms, 'outputFrame');
-  gui.add(uniforms, 'offsetMultiplier', 0.0, 1.0);
+  gui.add(uniforms, 'offsetMultiplier', 0.0, 0.2);
 
   function draw() {
     gl.useProgram(program);
