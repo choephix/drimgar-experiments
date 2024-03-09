@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Drimgar Experiments</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: rgb(100, 200, 255);
+        font-family: sans-serif;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: row;
+        height: 100vh;
+      }
+
+      .sidebar {
+        flex: 0 0 35vw;
+        padding: 10px;
+      }
+
+      a.link {
+        text-decoration: none;
+        color: #000;
+        transition: color 0.2s ease-in, left 0.5s ease-in; /* fast color transition on hover */
+      }
+
+      .link {
+        padding: 5px;
+        cursor: pointer;
+        user-select: all;
+        position: relative;
+        left: -100px; /* start off the screen */
+        animation: slideIn 0.5s forwards; /* slide in from the left */
+      }
+
+      .link:hover {
+        color: #36f;
+        transition: color 1s ease-out; /* slow color transition on out */
+      }
+
+      @keyframes slideIn {
+        0% {
+          left: -100px;
+        }
+        100% {
+          left: 0;
+        }
+      }
+
+      .preview {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: fixed;
+        width: fit-content;
+        height: fit-content;
+        right: 100px;
+        top: 100px;
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
+      .preview canvas {
+        max-width: 50vw;
+        max-height: 50vh;
+        pointer-events: none;
+        animation: popIn 0.5s forwards; /* pop in on appear */
+      }
+
+      @keyframes popIn {
+        0% {
+          transform: scale(0);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      /****/
+
+      .spinner {
+        animation: rotate 2s linear infinite;
+        width: 50px;
+        height: 50px;
+
+        /* Center the spinner */
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .path {
+        stroke: #5652bf;
+        stroke-linecap: round;
+        animation: dash 1.5s ease-in-out infinite;
+      }
+
+      @keyframes rotate {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes dash {
+        0% {
+          stroke-dasharray: 1, 150;
+          stroke-dashoffset: 0;
+        }
+        50% {
+          stroke-dasharray: 90, 150;
+          stroke-dashoffset: -35;
+        }
+        100% {
+          stroke-dasharray: 90, 150;
+          stroke-dashoffset: -124;
+        }
+      }
+    </style>
+    <script id="vertex-shader-pix" type="x-shader/x-vertex">
+      attribute vec2 aVertexPosition;
+
+      uniform mat3 projectionMatrix;
+      uniform mat3 filterMatrix;
+
+      varying vec2 vTextureCoord;
+      varying vec2 vFilterCoord;
+
+      uniform vec4 inputSize;
+      uniform vec4 outputFrame;
+
+      vec4 filterVertexPosition(void ) {
+        vec2 position = aVertexPosition * max(outputFrame.zw, vec2(0.0)) + outputFrame.xy;
+
+        return vec4((projectionMatrix * vec3(position, 1.0)).xy, 0.0, 1.0);
+      }
+
+      vec2 filterTextureCoord(void ) {
+        return aVertexPosition * (outputFrame.zw * inputSize.zw);
+      }
+
+      void main(void ) {
+        gl_Position = filterVertexPosition();
+        vTextureCoord = filterTextureCoord();
+
+        vTextureCoord = aVertexPosition;
+        vFilterCoord = (filterMatrix * vec3(vTextureCoord, 1.0)).xy;
+      }
+    </script>
+    <script id="fragment-shader-pix" type="x-shader/x-fragment">
+      precision highp float;
+
+      varying vec2 vFilterCoord;
+      varying vec2 vTextureCoord;
+      uniform sampler2D mapSampler;
+
+      uniform sampler2D imageSampler;
+      uniform vec4 inputSize;
+      uniform float scale;
+      uniform vec3 offset;
+      uniform float focus;
+      uniform float enlarge;
+      uniform float aspect;
+
+      vec3 perspective(
+        vec2 uv,
+        vec3 cameraShift,
+        float convergence
+      ) {
+        vec3 ray_origin = vec3(uv - 0.5, 0) * (1.0 - convergence * cameraShift.z);
+        vec3 ray_direction = vec3(0, 0, 1);
+
+
+        ray_origin.xy -= cameraShift.xy * convergence;
+        ray_direction.xy += (uv - 0.5) * cameraShift.z + cameraShift.xy;
+
+        const int step_count = 45;
+        const float hit_threshold = 0.01;
+        ray_direction /= float(step_count);
+
+
+
+        vec3 color = vec3(0.0);
+
+        for (int i = 0; i < step_count; i++) {
+          ray_origin += ray_direction;
+          float scene_z = 1.0 - texture2D(mapSampler, ray_origin.xy + 0.5).x;
+          if (ray_origin.z > scene_z) {
+            if (ray_origin.z - scene_z < hit_threshold) {
+              break;
+            }
+            ray_origin -= ray_direction;
+            ray_direction /= 2.0;
+          }
+        }
+
+        color = texture2D(imageSampler, ray_origin.xy + 0.5).rgb;
+        #ifdef DEBUG_CROP
+        if (
+          ray_origin.x < -0.5 ||
+          ray_origin.y < -0.5 ||
+          ray_origin.x >= +0.5 ||
+          ray_origin.y >= +0.5
+        ) {
+          color.r = 1.0;
+        }
+        #endif
+        return color;
+      }
+
+      void main(void ) {
+        #ifdef DEBUG_CROP
+        bool highlightCrop = false;
+        float e = 1.0 - 1.0 / enlarge;
+        if (
+          vTextureCoord.x < e / 2.0 ||
+          vTextureCoord.x > 1.0 - e / 2.0 ||
+          vTextureCoord.y < e / 2.0 ||
+          vTextureCoord.y > 1.0 - e / 2.0
+        ) {
+          highlightCrop = true;
+        }
+        vec2 uv = vTextureCoord;
+        #else
+        vec2 uv = (vTextureCoord - vec2(0.5)) / vec2(enlarge) + vec2(0.5);
+        #endif
+        gl_FragColor = vec4(
+          perspective(uv, vec3(offset.x, offset.y * aspect, offset.z), focus),
+          1.0
+        );
+        #ifdef DEBUG_CROP
+        gl_FragColor *= highlightCrop ? 0.2 : 1.0;
+        #endif
+      }
+    </script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      precision highp float;
+      
+      attribute vec2 aVertexPosition;
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+        vTextureCoord = aVertexPosition * 0.5 + 0.5; // convert from (-1,1) to (0,1)
+      }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+      precision highp float;
+
+      varying vec2 vTextureCoord;
+      uniform sampler2D imageSampler;
+      uniform sampler2D mapSampler;
+
+      void main(void) {
+        vec4 imageColor = texture2D(imageSampler, vTextureCoord);
+        float alpha = texture2D(mapSampler, vTextureCoord).r;
+        gl_FragColor = vec4(imageColor.rgb, 1.0);
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="sidebar">
+        <div id="links"></div>
+      </div>
+      <div class="preview" id="preview">
+        <!-- <svg class="spinner" viewBox="0 0 50 50">
+          <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
+        </svg> -->
+      </div>
+    </div>
+    <script src="load-links.js"></script>
+    <script src="load-preview.js"></script>
+    <!-- <script src="load-preview-legacy.js"></script> -->
+  </body>
+</html>
