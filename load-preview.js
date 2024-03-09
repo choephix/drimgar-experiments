@@ -151,7 +151,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
 
   // Set up attributes and uniforms
   const positionAttributeLocation = gl.getAttribLocation(program, 'aVertexPosition');
-  const texCoordAttributeLocation = gl.getAttribLocation(program, 'a_texCoord');
+  const texCoordAttributeLocation = gl.getAttribLocation(program, 'aTextureCoord');
 
   // Set up uniforms
   const colorTextureUniformLocation = gl.getUniformLocation(program, 'imageSampler');

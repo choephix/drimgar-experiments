@@ -124,7 +124,8 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
     <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
       in vec2 aVertexPosition;
-      in vec2 a_texCoord;
+      in vec2 aTextureCoord;
+      
       out vec2 vTextureCoord;
       out vec2 vFilterCoord;
 
@@ -133,8 +134,8 @@
 
       void main() {
         gl_Position = vec4(aVertexPosition, 0.0, 1.0);
-        vTextureCoord = a_texCoord;
-        vFilterCoord = a_texCoord;
+        vTextureCoord = aTextureCoord;
+        vFilterCoord = aTextureCoord;
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
