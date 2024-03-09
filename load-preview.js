@@ -180,7 +180,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     offset: [0.0, 0.0, 0.0],
     focus: 0.2,
     enlarge: 1.0,
-    aspect: 1.0,
+    aspect: canvas.width / canvas.height,
     inputSize: [1.0, 1.0, 1.0, 1.0],
     outputFrame: [-1, 1, 2.0, 2.0],
 
@@ -226,6 +226,8 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     gl.uniform1f(enlargeLocation, uniforms.enlarge);
     gl.uniform1f(aspectLocation, uniforms.aspect);
     gl.uniform4fv(inputSizeLocation, new Float32Array(uniforms.inputSize));
+
+
     gl.uniform4fv(outputFrameLocation, new Float32Array(uniforms.outputFrame));
 
     // Render
