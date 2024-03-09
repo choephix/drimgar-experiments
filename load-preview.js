@@ -184,7 +184,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     outputFrame: [1, 1, 2.0, 2.0],
 
     //
-    offsetMultiplier: 0.1,
+    offsetMultiplier: 0.075,
   };
 
   // Add controls for each uniform
