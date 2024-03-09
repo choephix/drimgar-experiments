@@ -121,54 +121,61 @@
         }
       }
     </style>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
     <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
-                        in vec2 a_position;
-                        in vec2 a_texCoord;
-                        out vec2 v_texCoord;
+      in vec2 aVertexPosition;
+      in vec2 a_texCoord;
+      out vec2 vTextureCoord;
+      out vec2 vFilterCoord;
 
-                        void main() {
-                          gl_Position = vec4(a_position, 0.0, 1.0);
-                          v_texCoord = a_texCoord;
-                        }
+      uniform mat3 projectionMatrix;
+      uniform mat3 filterMatrix;
+
+      void main() {
+        gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+        vTextureCoord = a_texCoord;
+        vFilterCoord = a_texCoord;
+      }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
-                        precision mediump float;
+      precision mediump float;
 
-                        uniform sampler2D u_colorTexture;
-                        uniform sampler2D u_depthTexture;
-                        uniform vec2 u_shift;
-                        uniform float u_scaleFactor;
-                        uniform float u_depthFactor;
+      uniform sampler2D imageSampler;
+      uniform sampler2D mapSampler;
 
-                        in vec2 v_texCoord;
-                        out vec4 outColor;
+      uniform vec2 u_shift;
+      uniform float u_scaleFactor;
+      uniform float u_depthFactor;
 
-                        vec2 smoothShift(vec2 shift, float depth) {
-                          float smoothDepth = smoothstep(0.0, 1.0, depth);
-                          return shift * smoothDepth;
-                        }
+      in vec2 vTextureCoord;
+      out vec4 outColor;
 
-                        void main()
-                        {
-                          float str = length(u_shift);
+      vec2 smoothShift(vec2 shift, float depth) {
+        float smoothDepth = smoothstep(0.0, 1.0, depth);
+        return shift * smoothDepth;
+      }
 
-                          float depth = texture(u_depthTexture, v_texCoord).r;
+      void main()
+      {
+        float str = length(u_shift);
 
-                          vec2 centeredTexCoord = v_texCoord - 0.5;
+        float depth = texture(mapSampler, vTextureCoord).r;
 
-                          float scale = mix(1.0 - 0.05 * u_scaleFactor * str, 1.0, depth);
-                          vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
+        vec2 centeredTexCoord = vTextureCoord - 0.5;
 
-                          float depth2 = texture(u_depthTexture, scaledTexCoord).r;
-                          
-                          float sigma = 1.0; // Adjust this value to control the steepness of the curve
-                          depth2 = 1.0 / (1.0 + exp(-sigma * depth2));
+        float scale = mix(1.0 - 0.05 * u_scaleFactor * str, 1.0, depth);
+        vec2 scaledTexCoord = (centeredTexCoord / scale) + 0.5;
 
-                          vec2 adjustedShift = smoothShift(u_shift, depth2);
-                          vec4 color = texture(u_colorTexture, scaledTexCoord + adjustedShift * str * u_depthFactor);
+        float depth2 = texture(mapSampler, scaledTexCoord).r;
+        
+        float sigma = 1.0; // Adjust this value to control the steepness of the curve
+        depth2 = 1.0 / (1.0 + exp(-sigma * depth2));
 
-                          outColor = color;
-                        }
+        vec2 adjustedShift = smoothShift(u_shift, depth2);
+        vec4 color = texture(imageSampler, scaledTexCoord + adjustedShift * str * u_depthFactor);
+
+        outColor = color;
+      }
     </script>
     <script id="fragment-shader-alt" type="x-shader/x-fragment">#version 300 es
                   precision mediump float;

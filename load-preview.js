@@ -150,12 +150,12 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
   // Set up attributes and uniforms
-  const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+  const positionAttributeLocation = gl.getAttribLocation(program, 'aVertexPosition');
   const texCoordAttributeLocation = gl.getAttribLocation(program, 'a_texCoord');
 
   // Set up uniforms
-  const colorTextureUniformLocation = gl.getUniformLocation(program, 'u_colorTexture');
-  const depthTextureUniformLocation = gl.getUniformLocation(program, 'u_depthTexture');
+  const colorTextureUniformLocation = gl.getUniformLocation(program, 'imageSampler');
+  const depthTextureUniformLocation = gl.getUniformLocation(program, 'mapSampler');
 
   let scaleFactor = 0.03,
     depthFactor = 0.02;
@@ -164,6 +164,29 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
 
   const shiftUniformLocation = gl.getUniformLocation(program, 'u_shift');
   let shift = [0.5, 0];
+
+  let projectionMatrixLocation = gl.getUniformLocation(program, 'projectionMatrix');
+  let filterMatrixLocation = gl.getUniformLocation(program, 'filterMatrix');
+
+  let projectionMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+
+  let filterMatrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+
+  // Assuming you have a WebGL2 context 'gl' and a compiled and linked program 'program'
+
+  let inputSize = [1.0, 1.0, 1.0, 1.0]; // replace with actual values
+  let scale = 1.0; // replace with actual value
+  let offset = [0.0, 0.0, 0.0]; // replace with actual values
+  let focus = 1.0; // replace with actual value
+  let enlarge = 1.0; // replace with actual value
+  let aspect = 1.0; // replace with actual value
+
+  let inputSizeLocation = gl.getUniformLocation(program, 'inputSize');
+  let scaleLocation = gl.getUniformLocation(program, 'scale');
+  let offsetLocation = gl.getUniformLocation(program, 'offset');
+  let focusLocation = gl.getUniformLocation(program, 'focus');
+  let enlargeLocation = gl.getUniformLocation(program, 'enlarge');
+  let aspectLocation = gl.getUniformLocation(program, 'aspect');
 
   function draw() {
     gl.useProgram(program);
@@ -188,6 +211,16 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     gl.uniform1f(depthFactorUniformLocation, depthFactor);
 
     gl.uniform2fv(shiftUniformLocation, shift);
+
+    gl.uniformMatrix3fv(projectionMatrixLocation, false, new Float32Array(projectionMatrix));
+    gl.uniformMatrix3fv(filterMatrixLocation, false, new Float32Array(filterMatrix));
+
+    gl.uniform4fv(inputSizeLocation, new Float32Array(inputSize));
+    gl.uniform1f(scaleLocation, scale);
+    gl.uniform3fv(offsetLocation, new Float32Array(offset));
+    gl.uniform1f(focusLocation, focus);
+    gl.uniform1f(enlargeLocation, enlarge);
+    gl.uniform1f(aspectLocation, aspect);
 
     // Render
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
