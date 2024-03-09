@@ -66,6 +66,7 @@ showPreview(ART_COL, ART_DPT).then(ctrl => {
     ];
 
     previewDiv.style.transform = `
+            translate(-50%, -50%)
             perspective(600px)
             rotateY(${-shift[0] * 10}deg)
             rotateX(${shift[1] * 10}deg)
@@ -242,6 +243,6 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     setDepthFactor: function (newDepthFactor) {
       depthFactor = newDepthFactor;
     },
-    draw
+    draw,
   };
 }
