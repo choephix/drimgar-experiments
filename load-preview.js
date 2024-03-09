@@ -182,7 +182,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     enlarge: 1.0,
     aspect: 1.0,
     inputSize: [1.0, 3.0, 1.0, 1.0],
-    outputFrame: [1, 1, 2.0, 2.0],
+    outputFrame: [-1, 1, 2.0, 2.0],
 
     //
     offsetMultiplier: 0.075,
