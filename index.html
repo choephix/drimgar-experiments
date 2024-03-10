@@ -155,17 +155,42 @@
 
       in vec2 vFilterCoord;
       in vec2 vTextureCoord;
-      uniform sampler2D mapSampler;
 
+      uniform sampler2D mapSampler;
       uniform sampler2D imageSampler;
+
       uniform vec4 inputSize;
-      uniform float scale;
       uniform vec3 offset;
       uniform float focus;
       uniform float enlarge;
       uniform float aspect;
 
+      uniform float widthPx;
+      uniform float heightPx;
+      uniform float dilation;
+      
+      const int MAX_RADIUS = 10;
+
       out vec4 fragColor;
+
+      float dilate(vec2 uv, vec2 px) {
+        float maxValue = 0.0;
+        float minValue = 1.0;
+        for (int x = -MAX_RADIUS; x <= +MAX_RADIUS; x++) {
+          for (int y = -MAX_RADIUS; y <= +MAX_RADIUS; y++) {
+            vec2 offset = vec2(float(x), float(y));
+            if (length(offset) > float(MAX_RADIUS)) continue;
+            offset *= px;
+            vec2 uv2 = uv + offset;
+            float val = texture(mapSampler, uv2).x;
+            maxValue = max(val, maxValue);
+            minValue = min(val, minValue);
+          }
+        }
+        return dilation < 0.0
+          ? minValue
+          : maxValue;
+      }
 
       vec3 perspective(
         vec2 uv,
@@ -184,9 +209,16 @@
 
         vec3 color = vec3(0.0);
 
+        
+        
         for (int i = 0; i < step_count; i++) {
           ray_origin += ray_direction;
+
+          // fragColor = vec4(vec3(dilate(vTextureCoord, px)), 1.0);
+          // float scene_z = 1.0 - texture(mapSampler, ray_origin.xy + 0.5).x;
+          
           float scene_z = 1.0 - texture(mapSampler, ray_origin.xy + 0.5).x;
+
           if (ray_origin.z > scene_z) {
             if (ray_origin.z - scene_z < hit_threshold) {
               break;
@@ -201,7 +233,16 @@
       }
 
       void main(void ) {
+        const float dilationScale = 1.26; 
+        float dilationStep = abs(dilationScale * dilation) / float(MAX_RADIUS);
+        float aspect = widthPx / heightPx;
+        vec2 px =
+          widthPx > heightPx
+            ? vec2(dilationStep / aspect, dilationStep)
+            : vec2(dilationStep, dilationStep * aspect);
+            
         vec2 uv = (vTextureCoord - vec2(0.5)) / vec2(enlarge) + vec2(0.5);
+        
         fragColor = vec4(
           perspective(uv, vec3(offset.x, offset.y * aspect, offset.z), focus),
           1.0

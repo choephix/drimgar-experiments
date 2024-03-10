@@ -167,6 +167,9 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   let aspectLocation = gl.getUniformLocation(program, 'aspect');
   let inputSizeLocation = gl.getUniformLocation(program, 'inputSize');
   let outputFrameLocation = gl.getUniformLocation(program, 'outputFrame');
+  
+  let wLocation = gl.getUniformLocation(program, 'widthPx');
+  let hLocation = gl.getUniformLocation(program, 'heightPx');
 
   // Create a new dat.GUI instance
   let gui = new dat.GUI();
@@ -176,7 +179,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
 
   // Define an object to hold your uniforms
   let uniforms = {
-    scale: 1.0,
+    dilation: 1.0,
     offset: [0.0, 0.0, 0.0],
     focus: 0.2,
     enlarge: 1.0,
@@ -189,7 +192,7 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
   };
 
   // Add controls for each uniform
-  gui.add(uniforms, 'scale', 0.1, 2.0);
+  gui.add(uniforms, 'dilation', 0.1, 2.0);
   gui.addColor(uniforms, 'offset');
   gui.add(uniforms, 'focus', 0.1, 1.0);
   gui.add(uniforms, 'enlarge', 0.1, 2.0);
@@ -220,15 +223,24 @@ function renderMSDFImage(canvas, colorImg, depthImg) {
     gl.uniformMatrix3fv(projectionMatrixLocation, false, new Float32Array(projectionMatrix));
     gl.uniformMatrix3fv(filterMatrixLocation, false, new Float32Array(filterMatrix));
 
-    gl.uniform1f(scaleLocation, uniforms.scale);
+    gl.uniform1f(scaleLocation, uniforms.dilation);
     gl.uniform3fv(offsetLocation, new Float32Array(uniforms.offset));
     gl.uniform1f(focusLocation, uniforms.focus);
     gl.uniform1f(enlargeLocation, uniforms.enlarge);
     gl.uniform1f(aspectLocation, uniforms.aspect);
     gl.uniform4fv(inputSizeLocation, new Float32Array(uniforms.inputSize));
 
+    /// outputframe, but compensating for .enlarge scaleFactor
+    const ofr = [
+      uniforms.outputFrame[0] / uniforms.enlarge,
+      uniforms.outputFrame[1] / uniforms.enlarge,
+      uniforms.outputFrame[2] * uniforms.enlarge,
+      uniforms.outputFrame[3] * uniforms.enlarge,
+    ]
+    gl.uniform4fv(outputFrameLocation, new Float32Array(ofr));
 
-    gl.uniform4fv(outputFrameLocation, new Float32Array(uniforms.outputFrame));
+    gl.uniform1f(wLocation, canvas.width);
+    gl.uniform1f(hLocation, canvas.height);
 
     // Render
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
